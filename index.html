@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+    <!-- PWA: instalación en iPhone -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Alarma Casa">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
+    <!-- PWA general -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0d0d1a">
+    <meta name="description" content="Sistema de alarma y monitoreo domiciliario">
+
+    <title>Alarma Casa</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div id="app">
+
+    <!-- ============ HEADER ============ -->
+    <header class="app-header">
+        <div class="header-content">
+            <div class="connection-badge">
+                <span class="connection-dot" id="connection-dot"></span>
+                <span id="connection-text">Conectando...</span>
+            </div>
+            <h1 class="app-title">Alarma Casa</h1>
+            <button class="icon-btn" id="notifications-btn"
+                    onclick="requestNotifications()" title="Activar notificaciones">
+                🔔
+            </button>
+        </div>
+    </header>
+
+    <!-- ============ CONTENIDO TABS ============ -->
+    <main class="tab-content">
+
+        <!-- ---- Tab: Dashboard ---- -->
+        <section class="tab-panel active" id="tab-dashboard">
+
+            <!-- Indicador de estado -->
+            <div class="status-card">
+                <div class="status-ring armed" id="status-ring">
+                    <div class="status-icon" id="status-icon">🔒</div>
+                </div>
+                <div class="status-label armed" id="status-label">ARMADA</div>
+                <div class="status-sublabel" id="status-sublabel">Sistema activo</div>
+            </div>
+
+            <!-- Botón Armar / Desarmar -->
+            <div class="control-section">
+                <button class="control-btn" id="main-btn" onclick="toggleAlarm()">
+                    <span class="btn-icon" id="btn-icon">🔓</span>
+                    <span class="btn-text" id="btn-text">Desarmar</span>
+                </button>
+            </div>
+
+            <!-- Cards de información -->
+            <div class="info-grid">
+                <div class="info-card">
+                    <div class="info-icon">📡</div>
+                    <div class="info-label">MQTT</div>
+                    <div class="info-value" id="mqtt-status">Offline</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-icon">📷</div>
+                    <div class="info-label">Cámara</div>
+                    <div class="info-value" id="cam-status">--</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-icon">⏱️</div>
+                    <div class="info-label">Último evento</div>
+                    <div class="info-value" id="last-event">Sin eventos</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-icon">🏠</div>
+                    <div class="info-label">Zonas</div>
+                    <div class="info-value" id="zones-active">--</div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ---- Tab: Cámara ---- -->
+        <section class="tab-panel" id="tab-camera">
+            <div class="camera-container">
+
+                <div class="camera-header">
+                    <h2>Cámara en Vivo</h2>
+                    <div class="camera-controls">
+                        <button class="cam-btn" onclick="toggleFlash(true)">💡 Flash</button>
+                        <button class="cam-btn" onclick="toggleFlash(false)">🌑 Apagar</button>
+                    </div>
+                </div>
+
+                <div class="stream-wrapper" id="stream-wrapper">
+                    <img id="camera-stream" src="" alt="Stream en vivo"
+                         onerror="handleStreamError()">
+                    <div class="stream-overlay" id="stream-overlay">
+                        <div class="stream-placeholder">
+                            📷<br>
+                            <span>Configurá la IP de la cámara<br>en la pestaña Ajustes</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="capture-btn" onclick="capturePhoto()">
+                    📸 Capturar Foto
+                </button>
+
+            </div>
+        </section>
+
+        <!-- ---- Tab: Historial ---- -->
+        <section class="tab-panel" id="tab-history">
+
+            <div class="history-header">
+                <h2>Historial de Eventos</h2>
+                <button class="clear-btn" onclick="clearHistory()">Limpiar</button>
+            </div>
+
+            <div class="event-list" id="event-list">
+                <div class="empty-state">
+                    <div class="empty-icon">📋</div>
+                    <div class="empty-text">Sin eventos registrados</div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ---- Tab: Ajustes ---- -->
+        <section class="tab-panel" id="tab-settings">
+            <div class="settings-container">
+
+                <h2>Ajustes</h2>
+
+                <!-- MQTT -->
+                <div class="settings-group">
+                    <div class="settings-group-title">🌐 Broker MQTT (HiveMQ)</div>
+                    <div class="setting-item">
+                        <label for="mqtt-host">Host</label>
+                        <input type="text" id="mqtt-host"
+                               placeholder="xxx.s1.eu.hivemq.cloud"
+                               autocorrect="off" autocapitalize="none">
+                    </div>
+                    <div class="setting-item">
+                        <label for="mqtt-port">Puerto</label>
+                        <input type="number" id="mqtt-port" value="8884">
+                    </div>
+                    <div class="setting-item">
+                        <label for="mqtt-user">Usuario</label>
+                        <input type="text" id="mqtt-user"
+                               placeholder="usuario_mqtt"
+                               autocorrect="off" autocapitalize="none">
+                    </div>
+                    <div class="setting-item">
+                        <label for="mqtt-pass">Contraseña</label>
+                        <input type="password" id="mqtt-pass" placeholder="••••••••">
+                    </div>
+                </div>
+
+                <!-- Cámara -->
+                <div class="settings-group">
+                    <div class="settings-group-title">📷 ESP32-CAM</div>
+                    <div class="setting-item">
+                        <label for="cam-ip">IP de la cámara</label>
+                        <input type="text" id="cam-ip"
+                               placeholder="192.168.1.XXX"
+                               autocorrect="off" autocapitalize="none">
+                    </div>
+                </div>
+
+                <!-- Notificaciones -->
+                <div class="settings-group">
+                    <div class="settings-group-title">🔔 Notificaciones</div>
+                    <div class="setting-item">
+                        <label>Alertas</label>
+                        <button class="notif-btn" id="notif-btn"
+                                onclick="requestNotifications()">
+                            Activar notificaciones
+                        </button>
+                    </div>
+                </div>
+
+                <button class="save-btn" onclick="saveSettings()">
+                    💾 Guardar Ajustes
+                </button>
+                <button class="reconnect-btn" onclick="reconnectMQTT()">
+                    🔄 Reconectar MQTT
+                </button>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ============ NAVEGACIÓN INFERIOR ============ -->
+    <nav class="bottom-nav">
+        <button class="nav-item active" id="nav-dashboard"
+                onclick="switchTab('dashboard')">
+            <span class="nav-icon">🏠</span>
+            <span class="nav-label">Inicio</span>
+        </button>
+        <button class="nav-item" id="nav-camera"
+                onclick="switchTab('camera')">
+            <span class="nav-icon">📷</span>
+            <span class="nav-label">Cámara</span>
+        </button>
+        <button class="nav-item" id="nav-history"
+                onclick="switchTab('history')">
+            <span class="nav-icon">📋</span>
+            <span class="nav-label">Historial</span>
+        </button>
+        <button class="nav-item" id="nav-settings"
+                onclick="switchTab('settings')">
+            <span class="nav-icon">⚙️</span>
+            <span class="nav-label">Ajustes</span>
+        </button>
+    </nav>
+
+</div>
+
+<!-- ============ MODAL DE CONFIRMACIÓN ============ -->
+<div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+        <div class="modal-icon"  id="modal-icon">⚠️</div>
+        <div class="modal-title" id="modal-title">¿Confirmar?</div>
+        <div class="modal-body"  id="modal-body"></div>
+        <div class="modal-actions">
+            <button class="modal-cancel"  onclick="closeModal()">Cancelar</button>
+            <button class="modal-confirm" id="modal-confirm-btn">Confirmar</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============ TOASTS ============ -->
+<div id="toast-container"></div>
+
+<!-- ============ SCRIPTS ============ -->
+<!-- Librería MQTT.js (WebSocket client) -->
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+<script src="mqtt-service.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>
