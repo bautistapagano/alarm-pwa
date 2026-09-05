@@ -63,6 +63,9 @@ function init() {
     registerServiceWorker();
     checkNotificationPermission();
 
+    // Sincronizar la UI con el estado inicial al arrancar
+    setAlarmState(AppState.alarmState);
+
     // Si ya hay IP de cámara guardada, mostrarla
     if (AppState.settings.camIP) {
         setCameraIP(AppState.settings.camIP);
@@ -198,24 +201,12 @@ function toggleAlarm() {
         return;
     }
 
-    const isArmed = (AppState.alarmState !== 'DESARMADA');
+    // Usar el texto del botón como fuente de verdad para evitar desincronización
+    const accionActual = UI.btnText.textContent.trim();
+    const quiereArmar  = (accionActual === 'Armar');
 
-    if (isArmed) {
-        // Confirmar que quiere desarmar
-        showModal({
-            icon:    '🔓',
-            title:   '¿Desarmar alarma?',
-            body:    'Vas a desactivar el sistema de seguridad de tu hogar.',
-            btnText: 'Sí, desarmar',
-            btnClass: '',
-            onConfirm: () => {
-                MQTTService.desarmar();
-                addEvent('🔓', 'Alarma desarmada', 'success');
-                showToast('🔓 Alarma desarmada', 'success');
-            }
-        });
-    } else {
-        // Confirmar que quiere armar
+    if (quiereArmar) {
+        // El sistema está desarmado → confirmar que quiere ARMAR
         showModal({
             icon:    '🔒',
             title:   '¿Armar alarma?',
@@ -224,8 +215,24 @@ function toggleAlarm() {
             btnClass: 'arm',
             onConfirm: () => {
                 MQTTService.armar();
+                setAlarmState('ARMADA');
                 addEvent('🔒', 'Alarma armada', 'info');
                 showToast('🔒 Alarma armada', 'info');
+            }
+        });
+    } else {
+        // El sistema está armado → confirmar que quiere DESARMAR
+        showModal({
+            icon:    '🔓',
+            title:   '¿Desarmar alarma?',
+            body:    'Vas a desactivar el sistema de seguridad de tu hogar.',
+            btnText: 'Sí, desarmar',
+            btnClass: '',
+            onConfirm: () => {
+                MQTTService.desarmar();
+                setAlarmState('DESARMADA');
+                addEvent('🔓', 'Alarma desarmada', 'success');
+                showToast('🔓 Alarma desarmada', 'success');
             }
         });
     }
